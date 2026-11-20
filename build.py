@@ -175,6 +175,15 @@ def build_manifest(spec: dict, version: str) -> dict:
     return manifest
 
 
+def _force_rmtree(path: Path) -> None:
+    """删目录树；Windows 上 git objects 带只读位，需清权限后重试。"""
+    def onerror(func, target, _exc):
+        os.chmod(target, 0o777)
+        func(target)
+
+    shutil.rmtree(path, onerror=onerror)
+
+
 def scrub(stage: Path) -> None:
     """按 IGNORE 清掉不该进包的文件；编译后再调一次，清掉新生成的中间产物。
 
@@ -185,13 +194,15 @@ def scrub(stage: Path) -> None:
         kept = []
         for name in dirnames:
             if any(fnmatch.fnmatch(name, p) for p in IGNORE):
-                shutil.rmtree(Path(dirpath) / name, ignore_errors=True)
+                _force_rmtree(Path(dirpath) / name)
             else:
                 kept.append(name)
         dirnames[:] = kept
         for name in filenames:
             if any(fnmatch.fnmatch(name, p) for p in IGNORE):
-                (Path(dirpath) / name).unlink(missing_ok=True)
+                target = Path(dirpath) / name
+                os.chmod(target, 0o777)
+                target.unlink(missing_ok=True)
 
 
 def build_one(
