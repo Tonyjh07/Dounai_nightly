@@ -64,19 +64,21 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 
 ## 5. 模块清单与扩展
 
-流水线读仓根 `modules.json`。每条记录声明一个待打包模块：
+上游模块仓不提供可作为发布真源的 v2 manifest：仓库里即使有 `manifest.json` 也是未入库的本地旧稿，不能依赖。流水线从 `modules.json` 的记录现生成一份完整 v2 manifest，随源码一起暂存、由 `pack` 写进 zip。清单是包内 manifest 的唯一真源，上游仓只提供源码与依赖声明。
 
-| 字段 | 含义 |
-|---|---|
-| `repo` | 上游仓库，格式 `owner/repo` |
-| `module_id` | 与 manifest 一致，格式 `publisher/name` |
-| `role` | 启动器五值枚举之一 |
-| `variant` | 固定 `nightly` |
-| `port` | 规范端口 |
-| `health` | health 路径 |
-| `deps_kind` | `uv_lock` 或 `pyproject` |
+每条记录分两组字段：定位字段给出上游仓库与版本号，模板字段给出生成 v2 manifest 所需的全部内容。
 
-新增模块只加一条记录，不改 workflow 逻辑。清单驱动打包矩阵，`pack.exe` 在 workflow 内 checkout 启动器仓后 `cargo build --bin pack` 产出，不预编译入库。
+| 字段 | 组 | 含义 |
+|---|---|---|
+| `repo` | 定位 | 上游仓库，格式 `owner/repo` |
+| `ref` | 定位 | checkout 的分支或 tag，默认 `main` |
+| `kind` | 定位 | `python` 或 `shell`；`shell` 表示上游产出单文件 exe，不生成 lock |
+| `manifest` | 模板 | 完整 v2 manifest 对象，除 `version`、`variant`、`files`、`signature` 外的全部字段 |
+| `zip_name` | 模板 | 包文件名，须带 `{version}` 占位符 |
+
+`manifest.module_id` 直接取自清单，格式 `publisher/name`；`version` 由流水线按当天日期覆盖为 `YYYY.M.D`，`variant` 覆盖为 `nightly`，`files` 与 `signature` 由 `pack` 生成。模板里不写这三个字段，写了也会被覆盖。
+
+新增模块只加一条记录，不改 workflow 逻辑。清单驱动打包矩阵。`pack` 与 `sign_catalog` 都在 workflow 内 checkout 启动器 main 后 `cargo build --release --bin` 现编译产出，不预编译入库。现编译是硬要求：`sign_catalog` 的 `source_id` 预检读启动器内置常量表，只有含 `nightly-gh` 的最新代码才会放行本源的 catalog。
 
 ## 6. 自动打包逻辑
 
@@ -88,7 +90,7 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 2. 逐仓取默认分支最新 commit sha。
 3. 与 `state/last-built.json` 的上次 sha 比对，筛出有更新的模块。
 4. 无模块更新时结束运行，不重签 catalog。
-5. checkout 有更新的模块仓，生成 `uv.lock`，写 v2 manifest，`pack` 用 K3 签名产出 zip。
+5. checkout 有更新的模块仓，按清单模板写 v2 manifest 并覆盖日期版本号；`python` 类同时生成 `uv.lock`，`shell` 类只拷贝上游 exe；`pack` 用 K3 签名产出 zip。
 6. 把 zip 提交到 `packages/`，更新 `last-built.json` 的对应 sha。
 7. 重签 catalog：`sequence` 加一，`generated_at` 取当前 UTC，`expires` 取 +1 天，逐条重算哈希，用 K4 签名并自验。
 8. commit 并 push 本仓产物。

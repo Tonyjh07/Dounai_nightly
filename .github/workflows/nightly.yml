@@ -1,0 +1,105 @@
+name: nightly
+
+# 每天固定时刻打包有更新的模块，重签 nightly catalog，产物提交回本仓。
+# 触发分支限制在 main：私钥只在 main 上下文可用，feature 分支拿不到 Secrets。
+
+on:
+  schedule:
+    # UTC 16:00 = 北京时间次日 00:00，避开白天上游提交高峰。
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout nightly repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "launcher/src-tauri -> target"
+
+      # pack 与 sign_catalog 从启动器 main 现编译，不用预编译二进制入库。
+      # 预检依赖启动器内置的 BUILTIN_SOURCE_IDS（含 nightly-gh），必须是最新代码。
+      - name: Checkout launcher source
+        uses: actions/checkout@v4
+        with:
+          repository: zhipianxiaokonglong/Dounai_launcher
+          ref: main
+          path: launcher
+          fetch-depth: 1
+
+      - name: Build signing tools
+        working-directory: launcher/src-tauri
+        run: |
+          cargo build --release --bin pack
+          cargo build --release --bin sign_catalog
+
+      - name: Install uv
+        # uv 随启动器仓附带；复制到工作区根，供 build.py 生成 uv.lock。
+        run: Copy-Item launcher/src-tauri/bin/uv.exe uv.exe
+
+      - name: Write signing keys from secrets
+        shell: pwsh
+        env:
+          K3_PRIVATE: ${{ secrets.NIGHTLY_K3_PRIVATE }}
+          K4_PRIVATE: ${{ secrets.NIGHTLY_K4_PRIVATE }}
+        run: |
+          if (-not $env:K3_PRIVATE) { throw "NIGHTLY_K3_PRIVATE 未设置" }
+          if (-not $env:K4_PRIVATE) { throw "NIGHTLY_K4_PRIVATE 未设置" }
+          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\k3.private.key", $env:K3_PRIVATE)
+          [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\k4.private.key", $env:K4_PRIVATE)
+
+      - name: Pack changed modules and resign catalog
+        shell: pwsh
+        env:
+          K3_FP: "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f"
+        run: |
+          python build.py `
+            --pack launcher/src-tauri/target/release/pack.exe `
+            --sign-catalog launcher/src-tauri/target/release/sign_catalog.exe `
+            --k3-key k3.private.key `
+            --k4-key k4.private.key `
+            --k3-fp $env:K3_FP `
+            --uv uv.exe
+
+      - name: Remove private keys
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath k3.private.key -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath k4.private.key -Force -ErrorAction SilentlyContinue
+
+      - name: Commit and push artifacts
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add catalog.json packages state/last-built.json
+          if (git diff --cached --quiet) {
+            Write-Host "没有产物变化，跳过提交。"
+            exit 0
+          }
+          git commit -m "Nightly build $(Get-Date -Format yyyy-MM-dd)"
+          git push origin main

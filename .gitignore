@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.private.key
+*.private.*
+k3.private.key
+k4.private.key
+catalog.unsigned.json

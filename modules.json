@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "catalog_source_id": "nightly-gh",
+  "package_key_id": "K3",
+  "catalog_key_id": "K4",
+  "modules": [
+    {
+      "repo": "zhipianxiaokonglong/Dounai_input",
+      "ref": "main",
+      "kind": "python",
+      "zip_name": "dounai-input-{version}.zip",
+      "manifest": {
+        "schema_version": 2,
+        "module_id": "dounai/dounai-input",
+        "name": "输入接入层 · Dounai Input",
+        "category": "core",
+        "publisher": { "id": "dounai", "name": "Dounai", "url": "" },
+        "requires": {
+          "launcher": ">=0.3.0",
+          "contract": "emotion-v2",
+          "roles_version": "1.0.0"
+        },
+        "depends_on": [],
+        "role": "input",
+        "runtime": {
+          "python": ">=3.11,<3.13",
+          "venv": "{instance_venv}",
+          "deps": { "kind": "uv_lock", "path": "uv.lock" }
+        },
+        "entry": {
+          "command": "{venv_python} -m dounai_input serve",
+          "working_dir": "{module_dir}",
+          "env": {
+            "DOUNAI_PORT": "{port}",
+            "DOUNAI_DATA_DIR": "{data_dir}/input"
+          },
+          "health": {
+            "url": "http://127.0.0.1:8101/healthz",
+            "timeout_ms": 3000
+          }
+        },
+        "ports": [8101],
+        "permissions": {
+          "network": [],
+          "filesystem": ["{data_dir}/input", "{module_dir}"],
+          "devices": ["microphone", "camera"]
+        },
+        "admin_ui": {
+          "kind": "input",
+          "title": "输入层厂商（ASR / 多模态）",
+          "capabilities": ["open_web_ui", "list", "write_env", "test"],
+          "web_ui": {
+            "path": "/",
+            "label": "输入层控制台",
+            "requires_running": true
+          }
+        },
+        "model_packs": []
+      }
+    },
+    {
+      "repo": "zhipianxiaokonglong/OmniNexus",
+      "ref": "main",
+      "kind": "python",
+      "zip_name": "omninexus-{version}.zip",
+      "manifest": {
+        "schema_version": 2,
+        "module_id": "dounai/omninexus",
+        "name": "LLM 编排核心 · OmniNexus",
+        "category": "core",
+        "publisher": { "id": "dounai", "name": "Dounai", "url": "" },
+        "requires": {
+          "launcher": ">=0.3.0",
+          "contract": "emotion-v2",
+          "roles_version": "1.0.0"
+        },
+        "depends_on": ["input"],
+        "role": "llm",
+        "runtime": {
+          "python": ">=3.11,<3.14",
+          "venv": "{instance_venv}",
+          "deps": { "kind": "uv_lock", "path": "uv.lock" }
+        },
+        "entry": {
+          "command": "{venv_python} -m omninexus",
+          "working_dir": "{module_dir}",
+          "env": {
+            "OMNI_PORT": "{port}",
+            "OMNI_DATA_DIR": "{data_dir}/omninexus"
+          },
+          "health": {
+            "url": "http://127.0.0.1:8102/v1/healthz",
+            "timeout_ms": 3000
+          }
+        },
+        "ports": [8102],
+        "permissions": {
+          "network": [],
+          "filesystem": ["{data_dir}/omninexus", "{module_dir}"],
+          "devices": []
+        },
+        "admin_ui": {
+          "kind": "llm",
+          "title": "模型厂商（LLM）",
+          "capabilities": ["open_web_ui", "list", "test"],
+          "web_ui": {
+            "path": "/settings",
+            "label": "模型厂商设置",
+            "requires_running": true
+          }
+        },
+        "model_packs": []
+      }
+    },
+    {
+      "repo": "zhipianxiaokonglong/MoodVoice",
+      "ref": "main",
+      "kind": "python",
+      "zip_name": "moodvoice-{version}.zip",
+      "manifest": {
+        "schema_version": 2,
+        "module_id": "dounai/moodvoice",
+        "name": "输出表达层 · MoodVoice",
+        "category": "optional",
+        "publisher": { "id": "dounai", "name": "Dounai", "url": "" },
+        "requires": {
+          "launcher": ">=0.3.0",
+          "contract": "emotion-v2",
+          "roles_version": "1.0.0"
+        },
+        "depends_on": ["llm"],
+        "role": "output",
+        "runtime": {
+          "python": ">=3.11,<3.14",
+          "venv": "{instance_venv}",
+          "deps": { "kind": "uv_lock", "path": "uv.lock" }
+        },
+        "entry": {
+          "command": "{venv_python} -m emotional_tts serve",
+          "working_dir": "{module_dir}",
+          "env": {
+            "EMOTION_TTS_PORT": "{port}",
+            "EMOTION_TTS_DATA_DIR": "{data_dir}/moodvoice",
+            "EMOTION_TTS_ROOT": "{module_dir}"
+          },
+          "health": {
+            "url": "http://127.0.0.1:8103/api/health",
+            "timeout_ms": 3000
+          }
+        },
+        "ports": [8103],
+        "permissions": {
+          "network": [],
+          "filesystem": ["{data_dir}/moodvoice", "{module_dir}"],
+          "devices": []
+        },
+        "admin_ui": {
+          "kind": "tts",
+          "title": "语音厂商（TTS）",
+          "capabilities": ["open_web_ui", "list", "write_env"],
+          "web_ui": {
+            "path": "/",
+            "label": "语音层控制台",
+            "requires_running": true
+          }
+        },
+        "model_packs": []
+      }
+    },
+    {
+      "repo": "zhipianxiaokonglong/Dounai",
+      "ref": "main",
+      "kind": "shell",
+      "zip_name": "dounai-shell-{version}.zip",
+      "exe_name": "dounai.exe",
+      "manifest": {
+        "schema_version": 2,
+        "module_id": "dounai/dounai-ui",
+        "name": "总装与 UI 层 · Dounai",
+        "category": "core",
+        "publisher": { "id": "dounai", "name": "Dounai", "url": "" },
+        "requires": {
+          "launcher": ">=0.3.0",
+          "contract": "emotion-v2",
+          "roles_version": "1.0.0"
+        },
+        "depends_on": ["input", "llm"],
+        "role": "shell",
+        "entry": {
+          "command": "{module_dir}/dounai.exe",
+          "working_dir": "{module_dir}",
+          "env": {},
+          "health": null
+        },
+        "ports": [],
+        "permissions": {
+          "network": [],
+          "filesystem": ["{app_local}"],
+          "devices": []
+        },
+        "model_packs": []
+      }
+    }
+  ]
+}

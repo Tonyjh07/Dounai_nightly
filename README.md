@@ -13,6 +13,7 @@ Dounai 模块的每日构建分发仓。产物由 GitHub Actions 生成，托管
 | `catalog.json` | nightly catalog，有模块更新时重签 |
 | `packages/` | 模块 zip 包 |
 | `state/last-built.json` | 各模块上次构建的 commit sha，用于增量判断 |
+| `build.py` | 打包编排：筛更新、生成 manifest、签包与重签 catalog |
 | `.github/workflows/nightly.yml` | 每日定时任务 |
 
 ## 用户怎么用
@@ -29,9 +30,9 @@ catalog 有效期 1 天。断更超过 1 天后启动器 fail-closed，不会安
 
 ## 流水线
 
-每天固定时刻运行，也支持手动触发。逐个比对上游仓库默认分支的 commit sha，只重打有更新的模块；有更新才重签 catalog。新增模块只需加一条清单记录，不改 workflow。
+每天固定时刻运行，也支持手动触发。逐个比对上游仓库默认分支的 commit sha，只重打有更新的模块；有更新才重签 catalog。新增模块只需加一条清单记录，不改 workflow。`pack` 与 `sign_catalog` 每次从启动器 main 现编译。
 
-当前状态：契约已定，流水线与产物尚未实装。
+当前状态：流水线已实装，首次产物由首次定时或手动触发生成。
 
 ## 启动器与契约
 
