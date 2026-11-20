@@ -1,0 +1,113 @@
+{
+  "expires": "2026-11-21T05:18:52Z",
+  "generated_at": "2026-11-20T05:18:52Z",
+  "modules": [
+    {
+      "expected_signer_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "expires": "2026-11-21T05:18:52Z",
+      "min_launcher": null,
+      "min_version": null,
+      "module_id": "dounai/dounai-input",
+      "name": "输入接入层 · Dounai Input",
+      "publisher_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "revoked": [],
+      "role": "input",
+      "sha256": "sha256:52cdc2cc4efc7852adeb3e2637adeb967e6c6a397978d041fe325a0763df86c4",
+      "signature_required": true,
+      "size": 1708701,
+      "sources": [
+        {
+          "source_id": "nightly-gh",
+          "url": "https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/packages/dounai-input-2026.11.20.zip"
+        }
+      ],
+      "variant": "nightly",
+      "version": "2026.11.20"
+    },
+    {
+      "expected_signer_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "expires": "2026-11-21T05:18:52Z",
+      "min_launcher": null,
+      "min_version": null,
+      "module_id": "dounai/dounai-ui",
+      "name": "总装与 UI 层 · Dounai",
+      "publisher_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "revoked": [],
+      "role": "shell",
+      "sha256": "sha256:da10641d7a53013304ed2736ee29a2c8fc881246b960088fe7ef8d1f9eb94ba5",
+      "signature_required": true,
+      "size": 3430330,
+      "sources": [
+        {
+          "source_id": "nightly-gh",
+          "url": "https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/packages/dounai-shell-2026.11.20.zip"
+        }
+      ],
+      "variant": "nightly",
+      "version": "2026.11.20"
+    },
+    {
+      "expected_signer_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "expires": "2026-11-21T05:18:52Z",
+      "min_launcher": null,
+      "min_version": null,
+      "module_id": "dounai/moodvoice",
+      "name": "输出表达层 · MoodVoice",
+      "publisher_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "revoked": [],
+      "role": "output",
+      "sha256": "sha256:e35bfac4c7cd452eb15f3fce1ec27c08a1f093fb544fa5865f305864756beae6",
+      "signature_required": true,
+      "size": 336637,
+      "sources": [
+        {
+          "source_id": "nightly-gh",
+          "url": "https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/packages/moodvoice-2026.11.20.zip"
+        }
+      ],
+      "variant": "nightly",
+      "version": "2026.11.20"
+    },
+    {
+      "expected_signer_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "expires": "2026-11-21T05:18:52Z",
+      "min_launcher": null,
+      "min_version": null,
+      "module_id": "dounai/omninexus",
+      "name": "LLM 编排核心 · OmniNexus",
+      "publisher_fp": "sha256:554305ebee1ac076368606a2381f1ece9c4c55afce36568decc8566e8c58a60f",
+      "revoked": [],
+      "role": "llm",
+      "sha256": "sha256:ad2c27cd746d94897b7fd565e7bc60f83e431201f41c4572b4c34afb0e0414f2",
+      "signature_required": true,
+      "size": 354526,
+      "sources": [
+        {
+          "source_id": "nightly-gh",
+          "url": "https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/packages/omninexus-2026.11.20.zip"
+        }
+      ],
+      "variant": "nightly",
+      "version": "2026.11.20"
+    }
+  ],
+  "revoked": [],
+  "schema_version": 2,
+  "sequence": 1,
+  "signature": {
+    "algo": "Ed25519",
+    "key_id": "K4",
+    "signed_at": "2026-11-20T05:23:14Z",
+    "signer_fp": "sha256:c1ba74e21a86c0de0d093c8966c8b43cb59a84483b0ee28e2d720ede8acf5253",
+    "value": "6+uaXeVLjxjMOUHWJZqyhg7tgXgvx3p9Tf1pdvnTKLxdfTWy9FkKPaSiwrCTjw7SsHw0yzhAWrtuYGV4A7tpCw=="
+  },
+  "sources": [
+    {
+      "base_url": "https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main",
+      "enabled": true,
+      "id": "nightly-gh",
+      "kind": "github",
+      "priority": 1
+    }
+  ]
+}
