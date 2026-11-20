@@ -50,6 +50,12 @@ jobs:
           path: launcher
           fetch-depth: 1
 
+      # tauri.conf.json 把 bin/uv.exe 声明为 bundle resource，build.rs 在编译
+      # 任何 bin target（含 pack/sign_catalog）时都要求它存在；该文件被
+      # .gitignore 排除，干净检出里没有，须按启动器脚本现取（两层哈希校验）。
+      - name: Fetch bundled uv
+        run: python launcher/scripts/fetch-uv.py
+
       - name: Build signing tools
         working-directory: launcher/src-tauri
         run: |
@@ -57,7 +63,7 @@ jobs:
           cargo build --release --bin sign_catalog
 
       - name: Install uv
-        # uv 随启动器仓附带；复制到工作区根，供 build.py 生成 uv.lock。
+        # 复制到工作区根，build.py 用绝对路径调用，避免 cwd=stage 时解析错位。
         run: Copy-Item launcher/src-tauri/bin/uv.exe uv.exe
 
       - name: Write signing keys from secrets
@@ -82,7 +88,7 @@ jobs:
             --k3-key k3.private.key `
             --k4-key k4.private.key `
             --k3-fp $env:K3_FP `
-            --uv uv.exe
+            --uv "$env:GITHUB_WORKSPACE\uv.exe"
 
       - name: Remove private keys
         if: always()
