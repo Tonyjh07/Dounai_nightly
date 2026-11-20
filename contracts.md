@@ -6,8 +6,8 @@
 
 nightly 仓同时承担产物托管与编排中心。产物走 `raw.githubusercontent.com`，不启用 GitHub Pages。
 
-- catalog：`https://raw.githubusercontent.com/zhipianxiaokonglong/Dounai_nightly/main/catalog.json`
-- 模块包：`https://raw.githubusercontent.com/zhipianxiaokonglong/Dounai_nightly/main/packages/<文件名>.zip`
+- catalog：`https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/catalog.json`
+- 模块包：`https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main/packages/<文件名>.zip`
 
 选 raw 地址的原因：白名单后缀 `githubusercontent.com` 已在启动器 `GITHUB_HOST_SUFFIXES` 中，零代码改动。Pages 域名 `github.io` 不在白名单，需要改启动器。两个域名的连接稳定性相近，不为稳定性单独改白名单。
 
@@ -50,7 +50,7 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 | id | `nightly-gh` |
 | name | 官方 Nightly（GitHub） |
 | kind | `official` |
-| base_url | `https://raw.githubusercontent.com/zhipianxiaokonglong/Dounai_nightly/main` |
+| base_url | `https://raw.githubusercontent.com/Tonyjh07/Dounai_nightly/main` |
 | catalog_pubkey | K4 公钥 |
 | catalog_fingerprint | K4 指纹 |
 | host_suffixes | `github.com`、`githubusercontent.com` |
@@ -88,7 +88,7 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 2. 逐仓取默认分支最新 commit sha。
 3. 与 `state/last-built.json` 的上次 sha 比对，筛出有更新的模块。
 4. 无模块更新时结束运行，不重签 catalog。
-5.  checkout 有更新的模块仓，生成 `uv.lock`，写 v2 manifest，`pack` 用 K3 签名产出 zip。
+5. checkout 有更新的模块仓，生成 `uv.lock`，写 v2 manifest，`pack` 用 K3 签名产出 zip。
 6. 把 zip 提交到 `packages/`，更新 `last-built.json` 的对应 sha。
 7. 重签 catalog：`sequence` 加一，`generated_at` 取当前 UTC，`expires` 取 +1 天，逐条重算哈希，用 K4 签名并自验。
 8. commit 并 push 本仓产物。
