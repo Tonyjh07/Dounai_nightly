@@ -72,7 +72,8 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 |---|---|---|
 | `repo` | 定位 | 上游仓库，格式 `owner/repo` |
 | `ref` | 定位 | checkout 的分支或 tag，默认 `main` |
-| `kind` | 定位 | `python` 或 `shell`；`shell` 表示上游产出单文件 exe，不生成 lock |
+| `kind` | 定位 | `python` 或 `shell`；`python` 类现场生成 `uv.lock`，`shell` 类须有单文件 exe |
+| `build_steps` | 定位 | 可选，仅 `shell` 类用；命令数组，按序在 checkout 的源码根执行以产出 exe。Tauri 仓没有预编译产物，须声明前端构建、`tauri build --no-bundle`、部署到模块根三步；未声明时上游仓根须已有 exe |
 | `manifest` | 模板 | 完整 v2 manifest 对象，除 `version`、`variant`、`files`、`signature` 外的全部字段 |
 | `zip_name` | 模板 | 包文件名，须带 `{version}` 占位符 |
 
@@ -90,7 +91,7 @@ K3 泄露后靠 `expires` 与轮换止损，不靠用户逐次确认。用户一
 2. 逐仓取默认分支最新 commit sha。
 3. 与 `state/last-built.json` 的上次 sha 比对，筛出有更新的模块。
 4. 无模块更新时结束运行，不重签 catalog。
-5. checkout 有更新的模块仓，按清单模板写 v2 manifest 并覆盖日期版本号；`python` 类同时生成 `uv.lock`，`shell` 类只拷贝上游 exe；`pack` 用 K3 签名产出 zip。
+5. checkout 有更新的模块仓，按清单模板写 v2 manifest 并覆盖日期版本号；`python` 类现场生成 `uv.lock`，`shell` 类按 `build_steps`（若有）从源码编出单文件 exe，`pack` 用 K3 签名产出 zip。
 6. 把 zip 提交到 `packages/`，更新 `last-built.json` 的对应 sha。
 7. 重签 catalog：`sequence` 加一，`generated_at` 取当前 UTC，`expires` 取 +1 天，逐条重算哈希，用 K4 签名并自验。
 8. commit 并 push 本仓产物。

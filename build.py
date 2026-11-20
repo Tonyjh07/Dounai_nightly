@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import os
@@ -61,10 +62,26 @@ def die(message: str) -> None:
     sys.exit(1)
 
 
+def resolve_cmd(prog: str) -> str:
+    """Windows 下给无扩展名的命令补 .cmd，否则 subprocess 找不到 npm/npx。
+
+    Python 在 Windows 用 CreateProcess 直接执行，不查 PATHEXT，npm/npx 实际是
+    npm.cmd/npx.cmd；只有 shell=True 才会补后缀，但那会引入命令注入面。这里只
+    在 PATH 中确实存在同名 .cmd 时补，保持清单命令跨平台可读。
+    """
+    if os.name != "nt" or "." in prog:
+        return prog
+    # 直接查 .cmd：CreateProcess 不认无扩展名的 npm/npx（那是给 POSIX shell 的），
+    # 先 which(prog) 会在 Git Bash 环境误命中无扩展名文件，反而漏补后缀。
+    cmd_path = shutil.which(f"{prog}.cmd")
+    return cmd_path if cmd_path else prog
+
+
 def run(cmd: list[str], cwd: Path | None = None) -> str:
-    print(f"  $ {' '.join(str(c) for c in cmd)}", flush=True)
+    args = [resolve_cmd(str(c)) if i == 0 else str(c) for i, c in enumerate(cmd)]
+    print(f"  $ {' '.join(args)}", flush=True)
     result = subprocess.run(
-        [str(c) for c in cmd],
+        args,
         cwd=cwd,
         capture_output=True,
         text=True,
@@ -74,7 +91,7 @@ def run(cmd: list[str], cwd: Path | None = None) -> str:
     if result.returncode != 0:
         print(result.stdout[-4000:])
         print(result.stderr[-4000:], file=sys.stderr)
-        die(f"命令失败（退出码 {result.returncode}）：{cmd[0]}")
+        die(f"命令失败（退出码 {result.returncode}）：{args[0]}")
     return result.stdout
 
 
@@ -134,9 +151,17 @@ def upstream_sha(repo: str, ref: str, token: str | None) -> str:
 
 
 def checkout(repo: str, ref: str, sha: str, dest: Path, token: str | None) -> None:
-    """浅克隆到指定 sha。上游仓是公开仓，clone 不注入 token，避免 URL 带凭据。"""
+    """按精确 sha 浅拉取。上游仓是公开仓，clone/fetch 不注入 token，避免 URL 带凭据。
+
+    不用 ``git clone --depth 1``：它只取默认分支 tip，而部分上游仓默认分支不是
+    清单里的 ref（OmniNexus 默认是 O5-13-2，清单取 main），且 ref 在取 sha 与
+    拉取之间可能前进，两种情况下目标 sha 都不落在浅克隆里。按 sha 直接 fetch
+    则与分支名、竞态无关。
+    """
     clone_url = f"https://github.com/{repo}.git"
-    run(["git", "clone", "--no-checkout", "--depth", "1", clone_url, str(dest)])
+    run(["git", "init", str(dest)])
+    run(["git", "remote", "add", "origin", clone_url], cwd=dest)
+    run(["git", "fetch", "--depth", "1", "origin", sha], cwd=dest)
     run(["git", "checkout", sha], cwd=dest)
 
 
@@ -148,6 +173,25 @@ def build_manifest(spec: dict, version: str) -> dict:
     manifest["files"] = {}
     manifest["signature"] = None
     return manifest
+
+
+def scrub(stage: Path) -> None:
+    """按 IGNORE 清掉不该进包的文件；编译后再调一次，清掉新生成的中间产物。
+
+    自顶向下遍历，命中目录时从 dirnames 剔除，避免 rglob 对已删目录继续迭代
+    漏删（实测 .git 会残留进包）。
+    """
+    for dirpath, dirnames, filenames in os.walk(stage, topdown=True):
+        kept = []
+        for name in dirnames:
+            if any(fnmatch.fnmatch(name, p) for p in IGNORE):
+                shutil.rmtree(Path(dirpath) / name, ignore_errors=True)
+            else:
+                kept.append(name)
+        dirnames[:] = kept
+        for name in filenames:
+            if any(fnmatch.fnmatch(name, p) for p in IGNORE):
+                (Path(dirpath) / name).unlink(missing_ok=True)
 
 
 def build_one(
@@ -165,25 +209,26 @@ def build_one(
     if stage.exists():
         shutil.rmtree(stage)
     checkout(spec["repo"], spec.get("ref", "main"), sha, stage, ctx["token"])
-
-    for pattern in IGNORE:
-        for path in stage.rglob(pattern):
-            if path.is_dir():
-                shutil.rmtree(path, ignore_errors=True)
-            elif path.is_file():
-                path.unlink(missing_ok=True)
+    scrub(stage)
 
     if spec["kind"] == "python":
         run([ctx["uv"], "lock"], cwd=stage)
         if not (stage / "uv.lock").is_file():
             die(f"{module_id} 的 uv lock 未产出 uv.lock")
     else:
+        # shell 类：可选 build_steps 从源码编出 exe（Tauri 仓没有预编译产物），
+        # 未声明时退回"上游仓根已有单文件 exe"的旧约定。
+        for step in spec.get("build_steps", []):
+            run(step, cwd=stage)
         exe_name = spec.get("exe_name")
         if not exe_name:
             die(f"{module_id} 是 shell 类但缺 exe_name")
         exe = stage / exe_name
         if not exe.is_file():
             die(f"{module_id} 的 exe 不在仓库根：{exe}")
+        # build_steps 生成了 target/ 与 node_modules/，不清理会把编译中间产物
+        # 打进 zip（实测 476 MB，其中几乎全是 rlib/dll）。
+        scrub(stage)
 
     save_json(stage / "manifest.json", build_manifest(spec, version))
     zip_name = spec["zip_name"].replace("{version}", version)

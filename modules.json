@@ -171,6 +171,12 @@
       "repo": "zhipianxiaokonglong/Dounai",
       "ref": "main",
       "kind": "shell",
+      "build_steps": [
+        ["npm", "install"],
+        ["npm", "run", "build"],
+        ["npx", "tauri", "build", "--no-bundle"],
+        ["npm", "run", "deploy:exe"]
+      ],
       "zip_name": "dounai-shell-{version}.zip",
       "exe_name": "dounai.exe",
       "manifest": {
