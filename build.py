@@ -22,6 +22,12 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+# Windows runner 的 stdout 默认 cp1252，中文提示会在 print 时抛
+# UnicodeEncodeError（CI 实测）。脚本自己切到 UTF-8，不依赖调用方设环境变量。
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent
 MODULES_FILE = ROOT / "modules.json"
 STATE_FILE = ROOT / "state" / "last-built.json"
